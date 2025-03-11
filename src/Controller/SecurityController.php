@@ -1,14 +1,5 @@
 <?php
 
-/*
- * This file is part of the Symfony package.
- *
- * (c) Fabien Potencier <fabien@symfony.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace App\Controller;
 
 use App\Entity\User;
@@ -20,43 +11,54 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
-/**
- * Controller used to manage the application security.
- * See https://symfony.com/doc/current/security/form_login_setup.html.
- *
- * @author Ryan Weaver <weaverryan@gmail.com>
- * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- */
 final class SecurityController extends AbstractController
 {
     use TargetPathTrait;
 
-    /*
-     * The $user argument type (?User) must be nullable because the login page
-     * must be accessible to anonymous visitors too.
+    /**
+     * Page de connexion (remplacée par OAuth2 Google)
      */
     #[Route('/login', name: 'security_login')]
     public function login(
         #[CurrentUser] ?User $user,
         Request $request,
-        AuthenticationUtils $helper,
+        AuthenticationUtils $helper
     ): Response {
-        // if user is already logged in, don't display the login page again
+        // Si l'utilisateur est déjà connecté, le rediriger vers l'administration
         if ($user) {
-            return $this->redirectToRoute('blog_index');
+            return $this->redirectToRoute('admin_index');
         }
 
-        // this statement solves an edge-case: if you change the locale in the login
-        // page, after a successful login you are redirected to a page in the previous
-        // locale. This code regenerates the referrer URL whenever the login page is
-        // browsed, to ensure that its locale is always the current one.
-        $this->saveTargetPath($request->getSession(), 'main', $this->generateUrl('admin_index'));
-
         return $this->render('security/login.html.twig', [
-            // last username entered by the user (if any)
-            'last_username' => $helper->getLastUsername(),
-            // last authentication error (if any)
             'error' => $helper->getLastAuthenticationError(),
         ]);
+    }
+
+    /**
+     * Route de redirection vers Google OAuth2
+     */
+    #[Route('/connect/google', name: 'connect_google')]
+    public function connectGoogle(): Response
+    {
+        return $this->redirectToRoute('connect_google_check');
+    }
+
+    /**
+     * Callback après authentification Google
+     */
+    #[Route('/connect/google/check', name: 'connect_google_check')]
+    public function connectGoogleCheck(): Response
+    {
+        // Après connexion réussie, redirection vers l’administration
+        return $this->redirectToRoute('admin_index');
+    }
+
+    /**
+     * Déconnexion de l'utilisateur
+     */
+    #[Route('/logout', name: 'security_logout', methods: ['GET'])]
+    public function logout(): void
+    {
+        // Symfony gère la déconnexion automatiquement, cette méthode ne sera jamais exécutée.
     }
 }
